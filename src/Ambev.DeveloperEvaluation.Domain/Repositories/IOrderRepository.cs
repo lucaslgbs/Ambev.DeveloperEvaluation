@@ -13,5 +13,7 @@ namespace Ambev.DeveloperEvaluation.Domain.Repositories
         Task<Order?> GetByIdAsync(Guid id, CancellationToken cancellationToken = default);
         Task UpdateAsync(Order order, CancellationToken cancellationToken = default);
         Task<List<Order>> GetPagedOrdersAsync(int page, int pageSize, string? search, CancellationToken cancellationToken);
+        Task CreateAsync(OrderItem item, CancellationToken cancellationToken = default);
+        Task UpdateAsync(OrderItem item, CancellationToken cancellationToken = default);
     }
 }

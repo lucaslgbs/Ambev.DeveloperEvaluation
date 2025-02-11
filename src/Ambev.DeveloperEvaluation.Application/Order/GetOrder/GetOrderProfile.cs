@@ -7,6 +7,7 @@ namespace Ambev.DeveloperEvaluation.Application.Order.GetOrder
         public GetOrderProfile()
         {
             CreateMap<Domain.Entities.Order, GetOrderResult>();
+            CreateMap<Domain.Entities.OrderItem, GetOrderItemResult>();
         }
     }
 }

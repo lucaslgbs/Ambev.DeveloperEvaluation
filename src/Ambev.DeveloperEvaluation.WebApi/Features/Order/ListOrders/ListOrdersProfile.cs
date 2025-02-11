@@ -8,6 +8,7 @@ namespace Ambev.DeveloperEvaluation.WebApi.Features.Order.ListOrders
         public ListOrdersProfile()
         {
             CreateMap<ListOrdersRequest, ListOrdersCommand>();
+            CreateMap<ListOrdersResult, ListOrdersResponse>();
         }
     }
 }

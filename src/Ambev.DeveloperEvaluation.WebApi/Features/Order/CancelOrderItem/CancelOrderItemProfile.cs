@@ -7,8 +7,8 @@ namespace Ambev.DeveloperEvaluation.WebApi.Features.Order.CancelOrderItem
     {
         public CancelOrderItemProfile()
         {
-            CreateMap<(Guid OrderId, Guid ItemId), CancelOrderItemCommand>()
-                .ConstructUsing(ids => new CancelOrderItemCommand(ids.OrderId, ids.ItemId));
+            CreateMap<CancelOrderItemRequest, CancelOrderItemCommand>()
+                .ConstructUsing(req => new CancelOrderItemCommand(req.OrderId, req.ItemId));
         }
     }
 }

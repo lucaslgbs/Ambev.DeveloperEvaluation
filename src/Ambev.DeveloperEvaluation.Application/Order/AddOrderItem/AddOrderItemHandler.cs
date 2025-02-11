@@ -33,9 +33,8 @@ namespace Ambev.DeveloperEvaluation.Application.Order.AddOrderItem
             command.Discount = CalculateDiscount(command.Quantity, command.Quantity * command.UnitPrice);
 
             var newItem = _mapper.Map<OrderItem>(command);
-            order.Items.Add(newItem);
 
-            await _orderRepository.UpdateAsync(order, cancellationToken);
+            await _orderRepository.CreateAsync(newItem, cancellationToken);
 
             return new AddOrderItemResponse { Success = true };
         }
