@@ -1,6 +1,10 @@
-﻿using Ambev.DeveloperEvaluation.Application.Order.CreateOrder;
+﻿using Ambev.DeveloperEvaluation.Application.Order.CancelOrder;
+using Ambev.DeveloperEvaluation.Application.Order.CreateOrder;
+using Ambev.DeveloperEvaluation.Application.Users.DeleteUser;
 using Ambev.DeveloperEvaluation.WebApi.Common;
+using Ambev.DeveloperEvaluation.WebApi.Features.Order.CancelOrder;
 using Ambev.DeveloperEvaluation.WebApi.Features.Order.CreateOrder;
+using Ambev.DeveloperEvaluation.WebApi.Features.Users.DeleteUser;
 using AutoMapper;
 using MediatR;
 using Microsoft.AspNetCore.Mvc;
@@ -25,13 +29,6 @@ namespace Ambev.DeveloperEvaluation.WebApi.Features.Order
             _mapper = mapper;
         }
 
-
-        /// <summary>
-        /// Creates a new user
-        /// </summary>
-        /// <param name="request">The order creation request</param>
-        /// <param name="cancellationToken">Cancellation token</param>
-        /// <returns>The created user details</returns>
         [HttpPost]
         [ProducesResponseType(typeof(ApiResponse), StatusCodes.Status200OK)]
         [ProducesResponseType(typeof(ApiResponse), StatusCodes.Status400BadRequest)]
@@ -52,6 +49,29 @@ namespace Ambev.DeveloperEvaluation.WebApi.Features.Order
                 Success = true,
                 Message = "Order created successfully",
                 Data = _mapper.Map<CreateOrderResponse>(response)
+            });
+        }
+
+        [HttpDelete("{id}")]
+        [ProducesResponseType(typeof(ApiResponse), StatusCodes.Status200OK)]
+        [ProducesResponseType(typeof(ApiResponse), StatusCodes.Status400BadRequest)]
+        [ProducesResponseType(typeof(ApiResponse), StatusCodes.Status404NotFound)]
+        public async Task<IActionResult> CancelOrder([FromRoute] Guid id, CancellationToken cancellationToken)
+        {
+            var request = new CancelOrderRequest { Id = id };
+            var validator = new CancelOrderRequestValidator();
+            var validationResult = await validator.ValidateAsync(request, cancellationToken);
+
+            if (!validationResult.IsValid)
+                return BadRequest(validationResult.Errors);
+
+            var command = _mapper.Map<CancelOrderCommand>(request.Id);
+            await _mediator.Send(command, cancellationToken);
+
+            return Ok(new ApiResponse
+            {
+                Success = true,
+                Message = "Order canceled successfully"
             });
         }
     }
