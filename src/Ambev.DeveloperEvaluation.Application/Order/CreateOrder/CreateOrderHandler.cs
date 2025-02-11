@@ -6,9 +6,6 @@ using System.Reflection.Metadata.Ecma335;
 
 namespace Ambev.DeveloperEvaluation.Application.Order.CreateOrder
 {
-    /// <summary>
-    /// Handler for processing CreateOrderCommand requests
-    /// </summary>
     public class CreateOrderHandler : IRequestHandler<CreateOrderCommand, CreateOrderResult>
     {
         private readonly IOrderRepository _orderRepository;

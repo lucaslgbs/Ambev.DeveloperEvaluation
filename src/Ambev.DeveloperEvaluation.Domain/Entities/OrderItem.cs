@@ -10,7 +10,7 @@ namespace Ambev.DeveloperEvaluation.Domain.Entities
         public decimal UnitPrice { get; set; } = 0;
         public decimal Discount { get; set; } = 0;
         public Guid OrderId { get; set; }
-
+        public bool IsCancelled { get; set; } = false;
         public virtual Order Order { get; set; } = null!;
     }
 }

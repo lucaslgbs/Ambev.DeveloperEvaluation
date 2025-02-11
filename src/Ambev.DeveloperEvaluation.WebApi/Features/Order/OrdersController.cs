@@ -1,10 +1,12 @@
-﻿using Ambev.DeveloperEvaluation.Application.Order.CancelOrder;
+﻿using Ambev.DeveloperEvaluation.Application.Order.AddOrderItem;
+using Ambev.DeveloperEvaluation.Application.Order.CancelOrder;
+using Ambev.DeveloperEvaluation.Application.Order.CancelOrderItem;
 using Ambev.DeveloperEvaluation.Application.Order.CreateOrder;
-using Ambev.DeveloperEvaluation.Application.Users.DeleteUser;
 using Ambev.DeveloperEvaluation.WebApi.Common;
+using Ambev.DeveloperEvaluation.WebApi.Features.Order.AddOrderItem;
 using Ambev.DeveloperEvaluation.WebApi.Features.Order.CancelOrder;
+using Ambev.DeveloperEvaluation.WebApi.Features.Order.CancelOrderItem;
 using Ambev.DeveloperEvaluation.WebApi.Features.Order.CreateOrder;
-using Ambev.DeveloperEvaluation.WebApi.Features.Users.DeleteUser;
 using AutoMapper;
 using MediatR;
 using Microsoft.AspNetCore.Mvc;
@@ -72,6 +74,52 @@ namespace Ambev.DeveloperEvaluation.WebApi.Features.Order
             {
                 Success = true,
                 Message = "Order canceled successfully"
+            });
+        }
+
+        [HttpDelete("{orderId}/items/{itemId}")]
+        [ProducesResponseType(typeof(ApiResponse), StatusCodes.Status200OK)]
+        [ProducesResponseType(typeof(ApiResponse), StatusCodes.Status400BadRequest)]
+        [ProducesResponseType(typeof(ApiResponse), StatusCodes.Status404NotFound)]
+        public async Task<IActionResult> CancelOrderItem([FromRoute] Guid orderId, [FromRoute] Guid itemId, CancellationToken cancellationToken)
+        {
+            var request = new CancelOrderItemRequest { OrderId = orderId, ItemId = itemId };
+            var validator = new CancelOrderItemRequestValidator();
+            var validationResult = await validator.ValidateAsync(request, cancellationToken);
+
+            if (!validationResult.IsValid)
+                return BadRequest(validationResult.Errors);
+
+            var command = _mapper.Map<CancelOrderItemCommand>(request);
+            await _mediator.Send(command, cancellationToken);
+
+            return Ok(new ApiResponse
+            {
+                Success = true,
+                Message = "Order item canceled successfully"
+            });
+        }
+
+        [HttpPost("{orderId}/items")]
+        [ProducesResponseType(typeof(ApiResponse), StatusCodes.Status200OK)]
+        [ProducesResponseType(typeof(ApiResponse), StatusCodes.Status400BadRequest)]
+        [ProducesResponseType(typeof(ApiResponse), StatusCodes.Status404NotFound)]
+        public async Task<IActionResult> AddOrderItem([FromRoute] Guid orderId, [FromBody] AddOrderItemRequest request, CancellationToken cancellationToken)
+        {
+            request.OrderId = orderId;
+            var validator = new AddOrderItemRequestValidator();
+            var validationResult = await validator.ValidateAsync(request, cancellationToken);
+
+            if (!validationResult.IsValid)
+                return BadRequest(validationResult.Errors);
+
+            var command = _mapper.Map<AddOrderItemCommand>(request);
+            await _mediator.Send(command, cancellationToken);
+
+            return Ok(new ApiResponse
+            {
+                Success = true,
+                Message = "Order item added successfully"
             });
         }
     }
