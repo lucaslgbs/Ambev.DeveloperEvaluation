@@ -1,6 +1,7 @@
 ﻿using Ambev.DeveloperEvaluation.Domain.Repositories;
 using FluentValidation;
 using MediatR;
+using Microsoft.Extensions.Logging;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -12,14 +13,17 @@ namespace Ambev.DeveloperEvaluation.Application.Order.CancelOrderItem
     public class CancelOrderItemHandler : IRequestHandler<CancelOrderItemCommand, CancelOrderItemResponse>
     {
         private readonly IOrderRepository _orderRepository;
+        private ILogger<CancelOrderItemHandler> _logger;
 
-        public CancelOrderItemHandler(IOrderRepository orderRepository)
+        public CancelOrderItemHandler(IOrderRepository orderRepository, ILogger<CancelOrderItemHandler> logger)
         {
             _orderRepository = orderRepository;
+            _logger = logger;
         }
 
         public async Task<CancelOrderItemResponse> Handle(CancelOrderItemCommand request, CancellationToken cancellationToken)
         {
+            _logger.LogInformation("Cancelling order item {ItemId} from order {OrderId}", request.ItemId, request.OrderId);
             var validator = new CancelOrderItemValidator();
             var validationResult = await validator.ValidateAsync(request, cancellationToken);
 
@@ -40,6 +44,8 @@ namespace Ambev.DeveloperEvaluation.Application.Order.CancelOrderItem
 
             item.IsCancelled = true;
             await _orderRepository.UpdateAsync(order, cancellationToken);
+
+            _logger.LogInformation("Message Event - rountingKey: CANCEL_ITEM", item);
 
             return new CancelOrderItemResponse { Success = true };
         }

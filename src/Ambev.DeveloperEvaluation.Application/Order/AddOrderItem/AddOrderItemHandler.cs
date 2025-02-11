@@ -2,6 +2,7 @@
 using Ambev.DeveloperEvaluation.Domain.Repositories;
 using AutoMapper;
 using MediatR;
+using Microsoft.Extensions.Logging;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -14,15 +15,18 @@ namespace Ambev.DeveloperEvaluation.Application.Order.AddOrderItem
     {
         private readonly IOrderRepository _orderRepository;
         private readonly IMapper _mapper;
+        private ILogger<AddOrderItemHandler> _logger;
 
-        public AddOrderItemHandler(IOrderRepository orderRepository, IMapper mapper)
+        public AddOrderItemHandler(IOrderRepository orderRepository, IMapper mapper, ILogger<AddOrderItemHandler> logger)
         {
             _orderRepository = orderRepository;
             _mapper = mapper;
+            _logger = logger;
         }
 
         public async Task<AddOrderItemResponse> Handle(AddOrderItemCommand command, CancellationToken cancellationToken)
         {
+            _logger.LogInformation("Adding order item to order {OrderId}", command.OrderId);
             var order = await _orderRepository.GetByIdAsync(command.OrderId, cancellationToken);
             if (order == null)
                 throw new KeyNotFoundException($"Order with ID {command.OrderId} not found");
@@ -35,6 +39,8 @@ namespace Ambev.DeveloperEvaluation.Application.Order.AddOrderItem
             var newItem = _mapper.Map<OrderItem>(command);
 
             await _orderRepository.CreateAsync(newItem, cancellationToken);
+
+            _logger.LogInformation("Message Event - rountingKey: CREATE_ORDERITEM", newItem);
 
             return new AddOrderItemResponse { Success = true };
         }
