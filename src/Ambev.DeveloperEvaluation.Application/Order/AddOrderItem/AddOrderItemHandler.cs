@@ -10,7 +10,7 @@ using System.Threading.Tasks;
 
 namespace Ambev.DeveloperEvaluation.Application.Order.AddOrderItem
 {
-    public class AddOrderItemHandler : IRequestHandler<AddOrderItemCommand, AddOrderItemResponse>
+    public class AddOrderItemHandler : OrderBaseHandler, IRequestHandler<AddOrderItemCommand, AddOrderItemResponse>
     {
         private readonly IOrderRepository _orderRepository;
         private readonly IMapper _mapper;
@@ -21,16 +21,18 @@ namespace Ambev.DeveloperEvaluation.Application.Order.AddOrderItem
             _mapper = mapper;
         }
 
-        public async Task<AddOrderItemResponse> Handle(AddOrderItemCommand request, CancellationToken cancellationToken)
+        public async Task<AddOrderItemResponse> Handle(AddOrderItemCommand command, CancellationToken cancellationToken)
         {
-            var order = await _orderRepository.GetByIdAsync(request.OrderId, cancellationToken);
+            var order = await _orderRepository.GetByIdAsync(command.OrderId, cancellationToken);
             if (order == null)
-                throw new KeyNotFoundException($"Order with ID {request.OrderId} not found");
+                throw new KeyNotFoundException($"Order with ID {command.OrderId} not found");
 
             if (order.IsCancelled)
-                throw new InvalidOperationException($"Order with ID {request.OrderId} is already cancelled");
+                throw new InvalidOperationException($"Order with ID {command.OrderId} is already cancelled");
 
-            var newItem = _mapper.Map<OrderItem>(request);
+            command.Discount = CalculateDiscount(command.Quantity, command.Quantity * command.UnitPrice);
+
+            var newItem = _mapper.Map<OrderItem>(command);
             order.Items.Add(newItem);
 
             await _orderRepository.UpdateAsync(order, cancellationToken);

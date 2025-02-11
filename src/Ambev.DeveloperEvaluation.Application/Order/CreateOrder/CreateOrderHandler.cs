@@ -6,7 +6,7 @@ using System.Reflection.Metadata.Ecma335;
 
 namespace Ambev.DeveloperEvaluation.Application.Order.CreateOrder
 {
-    public class CreateOrderHandler : IRequestHandler<CreateOrderCommand, CreateOrderResult>
+    public class CreateOrderHandler : OrderBaseHandler, IRequestHandler<CreateOrderCommand, CreateOrderResult>
     {
         private readonly IOrderRepository _orderRepository;
         private readonly IMapper _mapper;
@@ -30,14 +30,6 @@ namespace Ambev.DeveloperEvaluation.Application.Order.CreateOrder
             var order = _mapper.Map<Domain.Entities.Order>(command);
             var createdOrder = await _orderRepository.CreateAsync(order, cancellationToken);
             return _mapper.Map<CreateOrderResult>(createdOrder);
-        }
-
-        private void ApplyDiscount(CreateOrderItemCommand item)
-        {
-            if (item.Quantity >= 10)
-                item.Discount = (item.UnitPrice * item.Quantity) * 0.2m;
-            else if (item.Quantity >= 4)
-                item.Discount = (item.UnitPrice * item.Quantity) * 0.1m;
         }
     }
 }
