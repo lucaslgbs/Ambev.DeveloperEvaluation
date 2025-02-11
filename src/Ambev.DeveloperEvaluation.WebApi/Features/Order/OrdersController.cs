@@ -3,12 +3,14 @@ using Ambev.DeveloperEvaluation.Application.Order.CancelOrder;
 using Ambev.DeveloperEvaluation.Application.Order.CancelOrderItem;
 using Ambev.DeveloperEvaluation.Application.Order.CreateOrder;
 using Ambev.DeveloperEvaluation.Application.Order.GetOrder;
+using Ambev.DeveloperEvaluation.Application.Order.ListOrders;
 using Ambev.DeveloperEvaluation.WebApi.Common;
 using Ambev.DeveloperEvaluation.WebApi.Features.Order.AddOrderItem;
 using Ambev.DeveloperEvaluation.WebApi.Features.Order.CancelOrder;
 using Ambev.DeveloperEvaluation.WebApi.Features.Order.CancelOrderItem;
 using Ambev.DeveloperEvaluation.WebApi.Features.Order.CreateOrder;
 using Ambev.DeveloperEvaluation.WebApi.Features.Order.GetOrder;
+using Ambev.DeveloperEvaluation.WebApi.Features.Order.ListOrders;
 using AutoMapper;
 using MediatR;
 using Microsoft.AspNetCore.Mvc;
@@ -146,6 +148,28 @@ namespace Ambev.DeveloperEvaluation.WebApi.Features.Order
                 Success = true,
                 Message = "Order retrieved successfully",
                 Data = _mapper.Map<GetOrderResponse>(response)
+            });
+        }
+
+        [HttpGet]
+        [ProducesResponseType(typeof(ApiResponseWithData<List<ListOrdersResponse>>), StatusCodes.Status200OK)]
+        [ProducesResponseType(typeof(ApiResponse), StatusCodes.Status400BadRequest)]
+        public async Task<IActionResult> ListOrders([FromQuery] ListOrdersRequest request, CancellationToken cancellationToken)
+        {
+            var validator = new ListOrdersRequestValidator();
+            var validationResult = await validator.ValidateAsync(request, cancellationToken);
+
+            if (!validationResult.IsValid)
+                return BadRequest(validationResult.Errors);
+
+            var command = _mapper.Map<ListOrdersCommand>(request);
+            var response = await _mediator.Send(command, cancellationToken);
+
+            return Ok(new ApiResponseWithData<List<ListOrdersResponse>>
+            {
+                Success = true,
+                Message = "Orders retrieved successfully",
+                Data = _mapper.Map<List<ListOrdersResponse>>(response)
             });
         }
     }
