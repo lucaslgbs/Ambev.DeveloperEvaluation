@@ -9,18 +9,21 @@ using System.Collections.Generic;
 using System.Threading;
 using System.Threading.Tasks;
 using System;
+using Microsoft.Extensions.Logging;
 
 namespace Ambev.DeveloperEvaluation.Unit.Application.Order
 {
     public class CancelOrderHandlerTests
     {
         private readonly Mock<IOrderRepository> orderRepositoryMock;
+        private readonly Mock<ILogger<CancelOrderHandler>> loggerMock;
         private readonly CancelOrderHandler handler;
 
         public CancelOrderHandlerTests()
         {
             orderRepositoryMock = new Mock<IOrderRepository>();
-            handler = new CancelOrderHandler(orderRepositoryMock.Object);
+            loggerMock = new Mock<ILogger<CancelOrderHandler>>();
+            handler = new CancelOrderHandler(orderRepositoryMock.Object, loggerMock.Object);
         }
 
         [Fact]
