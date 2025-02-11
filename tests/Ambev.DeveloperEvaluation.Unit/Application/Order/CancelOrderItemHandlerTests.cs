@@ -5,6 +5,8 @@ using Xunit;
 using Ambev.DeveloperEvaluation.Application.Order.CancelOrderItem;
 using Ambev.DeveloperEvaluation.Domain.Entities;
 using Ambev.DeveloperEvaluation.Domain.Repositories;
+using Ambev.DeveloperEvaluation.Application.Order.AddOrderItem;
+using Microsoft.Extensions.Logging;
 
 namespace Ambev.DeveloperEvaluation.Unit.Application.Order
 {
@@ -12,11 +14,13 @@ namespace Ambev.DeveloperEvaluation.Unit.Application.Order
     {
         private readonly Mock<IOrderRepository> orderRepositoryMock;
         private readonly CancelOrderItemHandler handler;
+        private readonly Mock<ILogger<CancelOrderItemHandler>> loggerMock;
 
         public CancelOrderItemHandlerTests()
         {
+            loggerMock = new Mock<ILogger<CancelOrderItemHandler>>();
             orderRepositoryMock = new Mock<IOrderRepository>();
-            handler = new CancelOrderItemHandler(orderRepositoryMock.Object);
+            handler = new CancelOrderItemHandler(orderRepositoryMock.Object, loggerMock.Object);
         }
 
         [Fact]

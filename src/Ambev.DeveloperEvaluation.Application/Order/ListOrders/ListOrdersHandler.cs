@@ -9,13 +9,11 @@ namespace Ambev.DeveloperEvaluation.Application.Order.ListOrders
     {
         private readonly IOrderRepository _orderRepository;
         private readonly IMapper _mapper;
-        private ILogger<ListOrdersHandler> _logger;
 
-        public ListOrdersHandler(IOrderRepository orderRepository, IMapper mapper, ILogger<ListOrdersHandler> logger)
+        public ListOrdersHandler(IOrderRepository orderRepository, IMapper mapper)
         {
             _orderRepository = orderRepository;
             _mapper = mapper;
-            _logger = logger;
         }
 
         public async Task<List<ListOrdersResult>> Handle(ListOrdersCommand request, CancellationToken cancellationToken)

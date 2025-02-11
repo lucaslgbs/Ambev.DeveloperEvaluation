@@ -10,6 +10,8 @@ using System.Collections.Generic;
 using System.Threading;
 using System.Threading.Tasks;
 using System;
+using Ambev.DeveloperEvaluation.Application.Order.CancelOrder;
+using Microsoft.Extensions.Logging;
 
 namespace Ambev.DeveloperEvaluation.Unit.Application.Order
 {
@@ -18,12 +20,14 @@ namespace Ambev.DeveloperEvaluation.Unit.Application.Order
         private readonly Mock<IOrderRepository> orderRepositoryMock;
         private readonly Mock<IMapper> mapperMock;
         private readonly AddOrderItemHandler handler;
+        private readonly Mock<ILogger<AddOrderItemHandler>> loggerMock;
 
         public AddOrderItemHandlerTests()
         {
             orderRepositoryMock = new Mock<IOrderRepository>();
             mapperMock = new Mock<IMapper>();
-            handler = new AddOrderItemHandler(orderRepositoryMock.Object, mapperMock.Object);
+            loggerMock = new Mock<ILogger<AddOrderItemHandler>>();
+            handler = new AddOrderItemHandler(orderRepositoryMock.Object, mapperMock.Object, loggerMock.Object);
         }
 
         [Fact]
