@@ -21,17 +21,22 @@ namespace Ambev.DeveloperEvaluation.Application.Order.GetOrder
 
         public async Task<GetOrderResult> Handle(GetOrderCommand request, CancellationToken cancellationToken)
         {
-            var validator = new GetOrderValidator();
-            var validationResult = await validator.ValidateAsync(request, cancellationToken);
-
-            if (!validationResult.IsValid)
-                throw new ValidationException(validationResult.Errors);
+            await ValidateRequest(request, cancellationToken);
 
             var order = await _orderRepository.GetByIdAsync(request.Id, cancellationToken);
             if (order == null)
                 throw new KeyNotFoundException($"Order with ID {request.Id} not found");
 
             return _mapper.Map<GetOrderResult>(order);
+        }
+
+        private async Task ValidateRequest(GetOrderCommand request, CancellationToken cancellationToken)
+        {
+            var validator = new GetOrderValidator();
+            var validationResult = await validator.ValidateAsync(request, cancellationToken);
+
+            if (!validationResult.IsValid)
+                throw new ValidationException(validationResult.Errors);
         }
     }
 }

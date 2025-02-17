@@ -1,28 +1,31 @@
 ﻿using AutoMapper;
 using FluentAssertions;
-using Moq;
 using Xunit;
 using Ambev.DeveloperEvaluation.Application.Order.GetOrder;
 using Ambev.DeveloperEvaluation.Domain.Repositories;
 using FluentValidation;
+using Bogus;
+using NSubstitute;
 
 namespace Ambev.DeveloperEvaluation.Tests.Order
 {
     public class GetOrderHandlerTests
     {
-        private readonly Mock<IOrderRepository> _orderRepositoryMock;
-        private readonly Mock<IMapper> _mapperMock;
-        private readonly GetOrderHandler _handler;
+        private readonly IOrderRepository orderRepositoryMock;
+        private readonly IMapper mapperMock;
+        private readonly GetOrderHandler handler;
+        private readonly Faker faker;
 
         public GetOrderHandlerTests()
         {
-            _orderRepositoryMock = new Mock<IOrderRepository>();
-            _mapperMock = new Mock<IMapper>();
-            _handler = new GetOrderHandler(_orderRepositoryMock.Object, _mapperMock.Object);
+            orderRepositoryMock = Substitute.For<IOrderRepository>();
+            mapperMock = Substitute.For<IMapper>();
+            handler = new GetOrderHandler(orderRepositoryMock, mapperMock);
+            faker = new Faker();
         }
 
         [Fact]
-        public async Task handleShouldReturnOrderWhenOrderExists()
+        public async Task HandleShouldReturnOrderWhenOrderExists()
         {
             // Arrange
             var orderId = Guid.NewGuid();
@@ -30,53 +33,49 @@ namespace Ambev.DeveloperEvaluation.Tests.Order
             var existingOrder = new Domain.Entities.Order { Id = orderId, OrderNumber = "12345" };
             var expectedResult = new GetOrderResult { Id = orderId, OrderNumber = "12345" };
 
-            _orderRepositoryMock.Setup(repo => repo.GetByIdAsync(orderId, It.IsAny<CancellationToken>()))
-                .ReturnsAsync(existingOrder);
-
-            _mapperMock.Setup(mapper => mapper.Map<GetOrderResult>(existingOrder))
-                .Returns(expectedResult);
+            orderRepositoryMock.GetByIdAsync(orderId, Arg.Any<CancellationToken>()).Returns(Task.FromResult(existingOrder));
+            mapperMock.Map<GetOrderResult>(existingOrder).Returns(expectedResult);
 
             // Act
-            var result = await _handler.Handle(command, CancellationToken.None);
+            var result = await handler.Handle(command, CancellationToken.None);
 
             // Assert
             result.Should().NotBeNull();
             result.Id.Should().Be(orderId);
             result.OrderNumber.Should().Be("12345");
 
-            _orderRepositoryMock.Verify(repo => repo.GetByIdAsync(orderId, It.IsAny<CancellationToken>()), Times.Once);
-            _mapperMock.Verify(mapper => mapper.Map<GetOrderResult>(existingOrder), Times.Once);
+            await orderRepositoryMock.Received(1).GetByIdAsync(orderId, Arg.Any<CancellationToken>());
+            mapperMock.Received(1).Map<GetOrderResult>(existingOrder);
         }
 
         [Fact]
-        public async Task handleShouldThrowValidationExceptionWhenCommandIsInvalid()
+        public async Task HandleShouldThrowValidationExceptionWhenCommandIsInvalid()
         {
             // Arrange
             var command = new GetOrderCommand(Guid.Empty);
 
             // Act
-            var act = async () => await _handler.Handle(command, CancellationToken.None);
+            var act = async () => await handler.Handle(command, CancellationToken.None);
 
             // Assert
-            await act.Should().ThrowAsync<ValidationException>();
+            await act.Should().ThrowAsync<FluentValidation.ValidationException>();
         }
 
         [Fact]
-        public async Task handleShouldThrowKeyNotFoundExceptionWhenOrderDoesNotExist()
+        public async Task HandleShouldThrowKeyNotFoundExceptionWhenOrderDoesNotExist()
         {
             // Arrange
             var orderId = Guid.NewGuid();
             var command = new GetOrderCommand(orderId);
 
-            _orderRepositoryMock.Setup(repo => repo.GetByIdAsync(orderId, It.IsAny<CancellationToken>()))
-                .ReturnsAsync((Domain.Entities.Order)null);
+            orderRepositoryMock.GetByIdAsync(orderId, Arg.Any<CancellationToken>()).Returns(Task.FromResult<Domain.Entities.Order>(null));
 
             // Act
-            var act = async () => await _handler.Handle(command, CancellationToken.None);
+            var act = async () => await handler.Handle(command, CancellationToken.None);
 
             // Assert
             await act.Should().ThrowAsync<KeyNotFoundException>().WithMessage($"Order with ID {orderId} not found");
-            _orderRepositoryMock.Verify(repo => repo.GetByIdAsync(orderId, It.IsAny<CancellationToken>()), Times.Once);
+            await orderRepositoryMock.Received(1).GetByIdAsync(orderId, Arg.Any<CancellationToken>());
         }
     }
 }

@@ -25,7 +25,6 @@ namespace Ambev.DeveloperEvaluation.Application.Order.CreateOrder
         {
             RuleFor(item => item.ProductCode).NotEmpty();
             RuleFor(item => item.ProductDescription).NotEmpty();
-            RuleFor(item => item.Quantity).InclusiveBetween(1, 20);
             RuleFor(item => item.UnitPrice).GreaterThan(0);
             RuleFor(item => item.Discount).GreaterThanOrEqualTo(0);
         }

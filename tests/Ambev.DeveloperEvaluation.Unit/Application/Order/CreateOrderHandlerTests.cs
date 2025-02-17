@@ -1,59 +1,66 @@
 ﻿using FluentAssertions;
-using Moq;
 using Xunit;
 using Ambev.DeveloperEvaluation.Application.Order.CreateOrder;
 using Ambev.DeveloperEvaluation.Domain.Entities;
 using Ambev.DeveloperEvaluation.Domain.Repositories;
 using AutoMapper;
 using FluentValidation;
+using Microsoft.Extensions.Logging;
+using Bogus;
+using NSubstitute;
+using System;
 using System.Collections.Generic;
 using System.Threading;
 using System.Threading.Tasks;
-using System;
-using Ambev.DeveloperEvaluation.Application.Order.CancelOrder;
-using Microsoft.Extensions.Logging;
+using Ambev.DeveloperEvaluation.Application.Order.Services;
+using MediatR;
 
 namespace Ambev.DeveloperEvaluation.Unit.Application.Order
 {
     public class CreateOrderHandlerTests
     {
-        private readonly Mock<IOrderRepository> orderRepositoryMock;
-        private readonly Mock<IMapper> mapperMock;
+        private readonly IOrderRepository orderRepositoryMock;
+        private readonly IDiscountService _discountService;
+        private readonly IMapper mapperMock;
         private readonly CreateOrderHandler handler;
-        private readonly Mock<ILogger<CreateOrderHandler>> loggerMock;
+        private readonly ILogger<CreateOrderHandler> loggerMock;
+        private readonly IMediator mediatorMock;
+        private readonly Faker faker;
 
         public CreateOrderHandlerTests()
         {
-            orderRepositoryMock = new Mock<IOrderRepository>();
-            mapperMock = new Mock<IMapper>();
-            loggerMock = new Mock<ILogger<CreateOrderHandler>>();
-            handler = new CreateOrderHandler(orderRepositoryMock.Object, mapperMock.Object, loggerMock.Object);
+            orderRepositoryMock = Substitute.For<IOrderRepository>();
+            mapperMock = Substitute.For<IMapper>();
+            loggerMock = Substitute.For<ILogger<CreateOrderHandler>>();
+            _discountService = new DiscountService();
+            mediatorMock = Substitute.For<IMediator>();
+            handler = new CreateOrderHandler(orderRepositoryMock, mapperMock, loggerMock, _discountService, mediatorMock);
+            faker = new Faker();
         }
 
         [Fact]
-        public async Task handleShouldCreateOrderWhenValidRequest()
+        public async Task HandleShouldCreateOrderWhenValidRequest()
         {
             // Arrange
-            var command = new CreateOrderCommand
-            {
-                OrderNumber = "12345",
-                OrderDate = DateTime.UtcNow,
-                Customer = "Test Customer",
-                Branch = "Test Branch",
-                Items = new List<CreateOrderItemCommand>
+            var command = new Faker<CreateOrderCommand>()
+                .RuleFor(c => c.OrderNumber, f => f.Random.AlphaNumeric(10))
+                .RuleFor(c => c.OrderDate, f => f.Date.Past())
+                .RuleFor(c => c.Customer, f => f.Company.CompanyName())
+                .RuleFor(c => c.Branch, f => f.Address.City())
+                .RuleFor(c => c.Items, f => new List<CreateOrderItemCommand>
                 {
                     new CreateOrderItemCommand { ProductCode = "P001", ProductDescription = "Product 1", Quantity = 2, UnitPrice = 10.0m },
                     new CreateOrderItemCommand { ProductCode = "P002", ProductDescription = "Product 2", Quantity = 5, UnitPrice = 20.0m },
                     new CreateOrderItemCommand { ProductCode = "P003", ProductDescription = "Product 3", Quantity = 10, UnitPrice = 30.0m }
-                }
-            };
+                })
+                .Generate();
 
-            var order = new DeveloperEvaluation.Domain.Entities.Order { Id = Guid.NewGuid(), OrderNumber = "12345" };
-            var expectedResult = new CreateOrderResult { Id = order.Id, OrderNumber = "12345" };
+            var order = new DeveloperEvaluation.Domain.Entities.Order { Id = Guid.NewGuid(), OrderNumber = command.OrderNumber };
+            var expectedResult = new CreateOrderResult { Id = order.Id, OrderNumber = command.OrderNumber };
 
-            mapperMock.Setup(mapper => mapper.Map<DeveloperEvaluation.Domain.Entities.Order>(command)).Returns(order);
-            orderRepositoryMock.Setup(repo => repo.CreateAsync(order, It.IsAny<CancellationToken>())).ReturnsAsync(order);
-            mapperMock.Setup(mapper => mapper.Map<CreateOrderResult>(order)).Returns(expectedResult);
+            mapperMock.Map<DeveloperEvaluation.Domain.Entities.Order>(command).Returns(order);
+            orderRepositoryMock.CreateAsync(order, Arg.Any<CancellationToken>()).Returns(Task.FromResult(order));
+            mapperMock.Map<CreateOrderResult>(order).Returns(expectedResult);
 
             // Act
             var result = await handler.Handle(command, CancellationToken.None);
@@ -61,19 +68,19 @@ namespace Ambev.DeveloperEvaluation.Unit.Application.Order
             // Assert
             result.Should().NotBeNull();
             result.Id.Should().Be(order.Id);
-            result.OrderNumber.Should().Be("12345");
+            result.OrderNumber.Should().Be(command.OrderNumber);
 
-            orderRepositoryMock.Verify(repo => repo.CreateAsync(order, It.IsAny<CancellationToken>()), Times.Once);
-            mapperMock.Verify(mapper => mapper.Map<CreateOrderResult>(order), Times.Once);
+            await orderRepositoryMock.Received(1).CreateAsync(order, Arg.Any<CancellationToken>());
+            mapperMock.Received(1).Map<CreateOrderResult>(order);
 
             // Validate discounts
-            command.Items[0].Discount.Should().Be(command.Items[0].UnitPrice * command.Items[0].Quantity);
-            command.Items[1].Discount.Should().Be(command.Items[1].UnitPrice * command.Items[1].Quantity * 0.1m);
-            command.Items[2].Discount.Should().Be(command.Items[2].UnitPrice * command.Items[2].Quantity * 0.2m);
+            command.Items[0].Discount.Should().Be(0);
+            command.Items[1].Discount.Should().Be((command.Items[1].UnitPrice * command.Items[1].Quantity) * 0.1m);
+            command.Items[2].Discount.Should().Be((command.Items[2].UnitPrice * command.Items[2].Quantity) * 0.2m);
         }
 
         [Fact]
-        public async Task handleShouldThrowValidationExceptionWhenInvalidRequest()
+        public async Task HandleShouldThrowValidationExceptionWhenInvalidRequest()
         {
             // Arrange
             var command = new CreateOrderCommand();
@@ -82,7 +89,7 @@ namespace Ambev.DeveloperEvaluation.Unit.Application.Order
             var act = async () => await handler.Handle(command, CancellationToken.None);
 
             // Assert
-            await act.Should().ThrowAsync<ValidationException>();
+            await act.Should().ThrowAsync<FluentValidation.ValidationException>();
         }
     }
 }

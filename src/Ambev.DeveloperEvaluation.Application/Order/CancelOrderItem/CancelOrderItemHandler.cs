@@ -5,7 +5,7 @@ using Microsoft.Extensions.Logging;
 using System;
 using System.Collections.Generic;
 using System.Linq;
-using System.Text;
+using System.Threading;
 using System.Threading.Tasks;
 
 namespace Ambev.DeveloperEvaluation.Application.Order.CancelOrderItem
@@ -13,7 +13,7 @@ namespace Ambev.DeveloperEvaluation.Application.Order.CancelOrderItem
     public class CancelOrderItemHandler : IRequestHandler<CancelOrderItemCommand, CancelOrderItemResponse>
     {
         private readonly IOrderRepository _orderRepository;
-        private ILogger<CancelOrderItemHandler> _logger;
+        private readonly ILogger<CancelOrderItemHandler> _logger;
 
         public CancelOrderItemHandler(IOrderRepository orderRepository, ILogger<CancelOrderItemHandler> logger)
         {
@@ -24,14 +24,10 @@ namespace Ambev.DeveloperEvaluation.Application.Order.CancelOrderItem
         public async Task<CancelOrderItemResponse> Handle(CancelOrderItemCommand request, CancellationToken cancellationToken)
         {
             _logger.LogInformation("Cancelling order item {ItemId} from order {OrderId}", request.ItemId, request.OrderId);
-            var validator = new CancelOrderItemValidator();
-            var validationResult = await validator.ValidateAsync(request, cancellationToken);
 
-            if (!validationResult.IsValid)
-                throw new ValidationException(validationResult.Errors);
+            await ValidateRequest(request, cancellationToken);
 
             var order = await _orderRepository.GetByIdAsync(request.OrderId, cancellationToken);
-
             if (order == null)
                 throw new KeyNotFoundException($"Order with ID {request.OrderId} not found");
 
@@ -48,6 +44,15 @@ namespace Ambev.DeveloperEvaluation.Application.Order.CancelOrderItem
             _logger.LogInformation("Message Event - rountingKey: CANCEL_ITEM", item);
 
             return new CancelOrderItemResponse { Success = true };
+        }
+
+        private async Task ValidateRequest(CancelOrderItemCommand request, CancellationToken cancellationToken)
+        {
+            var validator = new CancelOrderItemValidator();
+            var validationResult = await validator.ValidateAsync(request, cancellationToken);
+
+            if (!validationResult.IsValid)
+                throw new ValidationException(validationResult.Errors);
         }
     }
 }
